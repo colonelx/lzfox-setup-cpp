@@ -17,9 +17,9 @@ bool Clock::hasStopped() const
 
 void Clock::start(LZFoxWindow* caller)
 {
-    while(!stopped){
-        std::lock_guard<std::mutex> lock(m_mutex);
-        caller->updateClock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
+  while(!stopped){
+    std::lock_guard<std::mutex> lock(m_mutex);
+    caller->updateClock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  }
 }

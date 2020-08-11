@@ -5,13 +5,18 @@
 #include <cstring>
 #include "lzfox_linux.h"
 #include <unistd.h>
+#include "exception.h"
+#include <thread> 
 
 using namespace std;
 SerialConn::SerialConn(string port) {
+  if(port.empty()) {
+    throw GeneralException("No port was selected!");
+  }
   this->port = port;
   this->open_conn();
   if (!check_conn()) {
-    throw "Invalid Connection!";
+    throw GeneralException("Invalid connection!");
   }
 }
 
@@ -34,6 +39,9 @@ bool SerialConn::check_conn() {
 }
 
 void SerialConn::open_conn() {
+  if(this->port.empty()) {
+    throw GeneralException("No port was selected!");
+  }
   if(this->serial_port > 0) {
     this->close_conn();
   }
@@ -87,13 +95,64 @@ string SerialConn::send(string msg) {
   char cmd[len+1];
   strcpy(cmd, msg.c_str());
   write(this->serial_port, cmd, sizeof(cmd));
+  return this->read_data();
+}
+
+string SerialConn::read_data() {
   char read_buf [256];
   memset(&read_buf, '\0', sizeof(read_buf));
-  int num_bytes = read(serial_port, &read_buf, sizeof(read_buf));
+  int num_bytes = read(this->serial_port, &read_buf, sizeof(read_buf));
   if (num_bytes < 0) {
     printf("Error reading: %s\n", strerror(errno));
   }
   string response(read_buf);
+  return response;
+}
+
+string SerialConn::send_wait(string msg) {
+  int len = msg.length();
+  char cmd[len+1];
+  strcpy(cmd, msg.c_str());
+  write(this->serial_port, cmd, sizeof(cmd));
+  bool loop = true;
+  string result;
+  result = this->read_data();
+  cout << result;
+  while(loop) {
+    result = this->read_data();
+    cout << result;
+    size_t found = result.rfind("OK"); 
+    if (found != std::string::npos) {
+      loop = false;
+    }
+    sleep(1);
+  }
+  return result;
+}
+
+string SerialConn::send_long(string msg) {
+  int len = msg.length();
+  char cmd[len+1];
+  strcpy(cmd, msg.c_str());
+  write(this->serial_port, cmd, sizeof(cmd));
+  string response;
+  bool loop = true;
+  char read_buf [255];
+  while(loop) {
+    memset(&read_buf, '\0', sizeof(read_buf));
+    int num_bytes = read(this->serial_port, &read_buf, sizeof(read_buf));
+    if (num_bytes < 0) {
+      printf("Error reading: %s\n", strerror(errno));
+    }
+
+    string res(read_buf);
+    response += res;
+    cout << res;
+    size_t found = res.rfind("$");
+    if (found != std::string::npos) {
+      loop = false;
+    }
+  }
   return response;
 }
 #endif

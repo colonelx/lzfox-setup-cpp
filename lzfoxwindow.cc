@@ -2,10 +2,12 @@
 #include "stationinfowindow.h"
 #include "clock.h"
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <ctime>
-#include <exception>
+#include "exception.h"
 #include "lzfox.h"
+#include <regex>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -48,7 +50,9 @@ LZFoxWindow::LZFoxWindow()
       btnWriteInfo = Glib::RefPtr<Gtk::Button>::cast_dynamic(
         ui->get_object("btnWriteInfo")
       );
-
+      iptCardInfo = Glib::RefPtr<Gtk::Entry>::cast_dynamic(
+        ui->get_object("iptCardInfo")
+      );
 
       btnSetTime->signal_clicked().connect(
         [this]() {
@@ -69,7 +73,7 @@ LZFoxWindow::LZFoxWindow()
       );
 
       btnGetBackup->signal_clicked().connect([this]() { this->btnGetBackupClick(); });
-
+      btnWriteInfo->signal_clicked().connect([this]() { this->btnWriteInfoClick(); });
       Glib::RefPtr<Gtk::ListStore> station_id_tree_model = Gtk::ListStore::create(stationIdColumns);
       selStationID->set_model(station_id_tree_model);
       Gtk::TreeModel::Row row_start = *(station_id_tree_model->append());
@@ -132,19 +136,23 @@ LZFoxWindow::LZFoxWindow()
 }
 
 void LZFoxWindow::showStationInfoDialog() {
-  auto port = this->get_port();
-  LZFox lzfox = LZFox(port);
-  string stID = lzfox.getID();
-  string stTime = lzfox.getTime();
-  string stMode = lzfox.getMode();
-  string stVersion = lzfox.getVersion();
-  string stVoltage = lzfox.getVoltage();
-  stationInfoWindow.lblStID->set_text(stID);
-  stationInfoWindow.lblStTime->set_text(stTime);
-  stationInfoWindow.lblStMode->set_text(stMode);
-  stationInfoWindow.lblStVersion->set_text(stVersion);
-  stationInfoWindow.lblStVoltage->set_text(stVoltage);
-  stationInfoWindow.show();
+  try {
+    auto port = this->get_port();
+    LZFox lzfox = LZFox(port);
+    string stID = lzfox.getID();
+    string stTime = lzfox.getTime();
+    string stMode = lzfox.getMode();
+    string stVersion = lzfox.getVersion();
+    string stVoltage = lzfox.getVoltage();
+    stationInfoWindow.lblStID->set_text(stID);
+    stationInfoWindow.lblStTime->set_text(stTime);
+    stationInfoWindow.lblStMode->set_text(stMode);
+    stationInfoWindow.lblStVersion->set_text(stVersion);
+    stationInfoWindow.lblStVoltage->set_text(stVoltage);
+    stationInfoWindow.show();
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
+  } 
 }
 
 
@@ -173,8 +181,8 @@ void LZFoxWindow::btnSetTimeClick() {
     LZFox lzfox = LZFox(port);
     string result = lzfox.setTime();
     statusbar->push("Response: " + result);
-  } catch (exception& e) {
-    this->showExceptionDialog(std::string(e.what()));
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
   }
 }
 
@@ -182,21 +190,105 @@ void LZFoxWindow::btnGetBackupClick() {
   try {
     auto port = this->get_port();
     LZFox lzfox = LZFox(port);
-    //string result = lzfox.getBackup();
-    //statusbar->push("Response: " + result);
-  } catch (exception& e) {
-    this->showExceptionDialog(std::string(e.what()));
+    string result = lzfox.getBackup();
+    this->showSaveDialog(result);
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
+  }
+}
+
+void LZFoxWindow::showSaveDialog(string content) {
+  Gtk::FileChooserDialog dialog("Please choose a file",
+          Gtk::FILE_CHOOSER_ACTION_SAVE);
+  dialog.set_transient_for(*this);
+
+  //Add response buttons the the dialog:
+  dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dialog.add_button("_Save", Gtk::RESPONSE_OK);
+
+  //Add filters, so that only certain file types can be selected:
+
+  auto filter_text = Gtk::FileFilter::create();
+  filter_text->set_name("Text files");
+  filter_text->add_mime_type("text/plain");
+  dialog.add_filter(filter_text);
+
+  auto filter_cpp = Gtk::FileFilter::create();
+  filter_cpp->set_name("C/C++ files");
+  filter_cpp->add_mime_type("text/x-c");
+  filter_cpp->add_mime_type("text/x-c++");
+  filter_cpp->add_mime_type("text/x-c-header");
+  dialog.add_filter(filter_cpp);
+
+  auto filter_any = Gtk::FileFilter::create();
+  filter_any->set_name("Any files");
+  filter_any->add_pattern("*");
+  dialog.add_filter(filter_any);
+
+  //Show the dialog and wait for a user response:
+  int result = dialog.run();
+
+  //Handle the response:
+  switch(result)
+  {
+    case(Gtk::RESPONSE_OK):
+    {
+      
+      std::string filename = dialog.get_filename();
+      std::ofstream _file;
+      _file.open (filename);
+      _file << content;
+      _file.close();
+      break;
+    }
+    case(Gtk::RESPONSE_CANCEL):
+    {
+      break;
+    }
+    default:
+    {
+      std::cout << "Unexpected button clicked." << std::endl;
+      break;
+    }
   }
 }
 
 void LZFoxWindow::btnWriteInfoClick() {
   try {
     auto port = this->get_port();
+    string mode, id;
     LZFox lzfox = LZFox(port);
-    //string result = lzfox.getBackup();
-    //statusbar->push("Response: " + result);
-  } catch (exception& e) {
-    this->showExceptionDialog(std::string(e.what()));
+    string mode_raw = lzfox.getMode();
+    string id_raw = lzfox.getID();
+
+    const std::regex re(".*:(.*)>");
+    std::smatch re_match;
+    if (std::regex_match(mode_raw, re_match, re)) {
+      if (re_match.size() == 2) {
+        std::ssub_match match = re_match[1];
+        mode = match.str();
+      }
+    } else {
+      throw GeneralException("Cannot find MODE!");
+    }
+    if (std::regex_match(id_raw, re_match, re)) {
+      if (re_match.size() == 2) {
+        std::ssub_match match = re_match[1];
+        id = match.str();
+      }
+    } else {
+      throw GeneralException("Cannot find CNTR number!");
+    }
+    lzfox.setMode("WRITER");
+    string info = string(iptCardInfo->get_text());
+    statusbar->push("Waiting to write to card ...");
+    string result = lzfox.writeInfo(info);
+    statusbar->push("Response: " + result);
+    lzfox.setMode("CONTROL");
+    lzfox.setControl(id);
+    lzfox.setMode(mode);
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
   }
 }
 
@@ -215,8 +307,8 @@ void LZFoxWindow::btnSetControlModeClick(string mode, string control){
       string result = lzfox.setControl(control);
       statusbar->push("Response: " + result);
     }
-  } catch (exception& e) {
-    this->showExceptionDialog(std::string(e.what()));
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
   }
 }
 
@@ -226,8 +318,8 @@ void LZFoxWindow::btnResetBackupClick() {
     LZFox lzfox = LZFox(port);
     string result = lzfox.resetBackup();
     statusbar->push("Response: " + result);
-  } catch(exception& e) {
-    this->showExceptionDialog(std::string(e.what()));
+  } catch (GeneralException& ex) {
+    this->showExceptionDialog(ex.what());
   }
 }
 

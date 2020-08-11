@@ -4,6 +4,7 @@
 #include "clock.h"
 #include "station_id.h"
 #include "stationinfowindow.h"
+#include "savebackupwindow.h"
 #include <thread>
 #include <gtkmm/application.h>
 #include <gtkmm/applicationwindow.h>
@@ -56,6 +57,7 @@ public:
   void showSerialDialog();
   void showExceptionDialog(std::string);
   void showStationInfoDialog();
+  void showSaveDialog(std::string);
   virtual ~LZFoxWindow();
 
 protected:
@@ -71,6 +73,7 @@ protected:
   void btnWriteInfoClick();
   StationIDColumns stationIdColumns;
   StationInfoWindow stationInfoWindow;
+  SaveBackupWindow saveBackupWindow;
 };
 
 #endif

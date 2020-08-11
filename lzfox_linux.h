@@ -13,12 +13,15 @@ class SerialConn {
     public:
       SerialConn(string);
       string send(string);
+      string send_wait(string);
+      string send_long(string);
       ~SerialConn();
     //  static const char CMD_SET_TIME[];
     private:
       void open_conn();
       void close_conn();
       bool check_conn();
+      string read_data();
       int serial_port;
       string port;
       

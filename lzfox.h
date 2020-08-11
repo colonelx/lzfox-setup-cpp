@@ -21,15 +21,20 @@ class LZFox{
       string setTime();
       string setControl(string);
       string setMode(string);
+      string setWriter();
+      string writeInfo(string);
       string getTime();
       string getMode();
       string getID();
       string getVersion();
       string getVoltage();
+      string getBackup();
       string resetBackup();
     private:
       bool make_call();
       string send(string);
+      string send_wait(string);
+      string send_long(string);
       SerialConn conn;
 
 };

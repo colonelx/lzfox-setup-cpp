@@ -4,7 +4,6 @@
 #include "clock.h"
 #include "station_id.h"
 #include "stationinfowindow.h"
-#include "savebackupwindow.h"
 #include <thread>
 #include <gtkmm/application.h>
 #include <gtkmm/applicationwindow.h>
@@ -73,7 +72,6 @@ protected:
   void btnWriteInfoClick();
   StationIDColumns stationIdColumns;
   StationInfoWindow stationInfoWindow;
-  SaveBackupWindow saveBackupWindow;
 };
 
 #endif

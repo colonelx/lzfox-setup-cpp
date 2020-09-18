@@ -99,7 +99,7 @@ string SerialConn::send(string msg) {
 }
 
 string SerialConn::read_data() {
-  char read_buf [256];
+  char read_buf [255];
   memset(&read_buf, '\0', sizeof(read_buf));
   int num_bytes = read(this->serial_port, &read_buf, sizeof(read_buf));
   if (num_bytes < 0) {

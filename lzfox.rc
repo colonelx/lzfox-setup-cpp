@@ -1,0 +1,24 @@
+id ICON "res/lzfox.ico"
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "CompanyName", "Bench Party"
+      VALUE "FileDescription", "LZFox Station setup tool"
+      VALUE "FileVersion", "1.0"
+      VALUE "InternalName", "LZFox"
+      VALUE "LegalCopyright", "Viktor Panteleev @ Bench Party"
+      VALUE "OriginalFilename", "LZFox.exe"
+      VALUE "ProductName", "LZFox"
+      VALUE "ProductVersion", "1.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END

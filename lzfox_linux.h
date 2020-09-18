@@ -1,3 +1,4 @@
+#if defined(__linux__)
 #ifndef LZFOX_LINUX_H_
 #define LZFOX_LINUX_H_
 
@@ -24,8 +25,6 @@ class SerialConn {
       string read_data();
       int serial_port;
       string port;
-      
-      
-
 };
+#endif
 #endif

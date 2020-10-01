@@ -26,7 +26,7 @@ string SerialConn::send(string msg){
   strcpy(cmd, msg.c_str());
   DWORD dNoOFBytestoWrite = sizeof(cmd);
   DWORD dNoOfBytesWritten = 0;
-  Status = WriteFile(this->serial_port,        // Handle to the Serial port
+  WriteFile(this->serial_port,        // Handle to the Serial port
     cmd,     // Data to be written to the port
     dNoOFBytestoWrite,  //No of bytes to write
     &dNoOfBytesWritten, //Bytes written
@@ -36,10 +36,10 @@ string SerialConn::send(string msg){
 string SerialConn::send_wait(string msg){}
 string SerialConn::send_long(string msg){}
 
-string read_data() {
-  Status = SetCommMask(this->serial_port, EV_RXCHAR);
+string SerialConn::read_data() {
+  SetCommMask(this->serial_port, EV_RXCHAR);
   DWORD dwEventMask; 
-  Status = WaitCommEvent(this->serial_port, &dwEventMask, NULL); 
+  WaitCommEvent(this->serial_port, &dwEventMask, NULL); 
   char TempChar; //Temporary character used for reading
   char SerialBuffer[256];//Buffer for storing Rxed Data
   DWORD NoBytesRead;
@@ -58,7 +58,7 @@ string read_data() {
   }
   while (NoBytesRead > 0);
   string response(SerialBuffer);
-  return response
+  return response;
 }
 void SerialConn::open_conn() {
   if(this->port.empty()) {
@@ -67,7 +67,7 @@ void SerialConn::open_conn() {
   if(this->serial_port > 0) {
     this->close_conn();
   }
-  this->serial_port = CreateFile("\\\\.\\" + this->port,
+  this->serial_port = CreateFile(("\\\\.\\" + this->port).c_str(),
     GENERIC_READ | GENERIC_WRITE, //Read/Write
     0,               // No Sharing
     NULL,            // No Security

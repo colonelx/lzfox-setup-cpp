@@ -8,6 +8,7 @@
 #include "exception.h"
 #include "lzfox.h"
 #include <regex>
+#include <utility>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -138,12 +139,12 @@ LZFoxWindow::LZFoxWindow()
 void LZFoxWindow::showStationInfoDialog() {
   try {
     auto port = this->get_port();
-    LZFox lzfox = LZFox(port);
-    string stID = lzfox.getID();
-    string stTime = lzfox.getTime();
-    string stMode = lzfox.getMode();
-    string stVersion = lzfox.getVersion();
-    string stVoltage = lzfox.getVoltage();
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string stID = lzfox->getID();
+    string stTime = lzfox->getTime();
+    string stMode = lzfox->getMode();
+    string stVersion = lzfox->getVersion();
+    string stVoltage = lzfox->getVoltage();
     stationInfoWindow.lblStID->set_text(stID);
     stationInfoWindow.lblStTime->set_text(stTime);
     stationInfoWindow.lblStMode->set_text(stMode);
@@ -178,8 +179,8 @@ void LZFoxWindow::showExceptionDialog(string str) {
 void LZFoxWindow::btnSetTimeClick() {
   try {
     auto port = this->get_port();
-    LZFox lzfox = LZFox(port);
-    string result = lzfox.setTime();
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string result = lzfox->setTime();
     statusbar->push("Response: " + result);
   } catch (GeneralException& ex) {
     this->showExceptionDialog(ex.what());
@@ -189,8 +190,8 @@ void LZFoxWindow::btnSetTimeClick() {
 void LZFoxWindow::btnGetBackupClick() {
   try {
     auto port = this->get_port();
-    LZFox lzfox = LZFox(port);
-    string result = lzfox.getBackup();
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string result = lzfox->getBackup();
     this->showSaveDialog(result);
   } catch (GeneralException& ex) {
     this->showExceptionDialog(ex.what());
@@ -257,9 +258,9 @@ void LZFoxWindow::btnWriteInfoClick() {
   try {
     auto port = this->get_port();
     string mode, id;
-    LZFox lzfox = LZFox(port);
-    string mode_raw = lzfox.getMode();
-    string id_raw = lzfox.getID();
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string mode_raw = lzfox->getMode();
+    string id_raw = lzfox->getID();
 
     const std::regex re(".*:(.*)>");
     std::smatch re_match;
@@ -279,14 +280,14 @@ void LZFoxWindow::btnWriteInfoClick() {
     } else {
       throw GeneralException("Cannot find CNTR number!");
     }
-    lzfox.setMode("WRITER");
+    lzfox->setMode("WRITER");
     string info = string(iptCardInfo->get_text());
     statusbar->push("Waiting to write to card ...");
-    string result = lzfox.writeInfo(info);
+    string result = lzfox->writeInfo(info);
     statusbar->push("Response: " + result);
-    lzfox.setMode("CONTROL");
-    lzfox.setControl(id);
-    lzfox.setMode(mode);
+    lzfox->setMode("CONTROL");
+    lzfox->setControl(id);
+    lzfox->setMode(mode);
   } catch (GeneralException& ex) {
     this->showExceptionDialog(ex.what());
   }
@@ -300,11 +301,11 @@ Glib::ustring LZFoxWindow::get_port() {
 void LZFoxWindow::btnSetControlModeClick(string mode, string control){
   try {
     auto port = this->get_port();
-    LZFox lzfox = LZFox(port);
-    string result = lzfox.setMode(mode);
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string result = lzfox->setMode(mode);
     statusbar->push(result);
     if(control.compare("") != 0) {
-      string result = lzfox.setControl(control);
+      string result = lzfox->setControl(control);
       statusbar->push("Response: " + result);
     }
   } catch (GeneralException& ex) {
@@ -315,8 +316,8 @@ void LZFoxWindow::btnSetControlModeClick(string mode, string control){
 void LZFoxWindow::btnResetBackupClick() {
   try {
     auto port = this->get_port();
-    LZFox lzfox = LZFox(port);
-    string result = lzfox.resetBackup();
+    unique_ptr<LZFox> lzfox(new LZFox(port));
+    string result = lzfox->resetBackup();
     statusbar->push("Response: " + result);
   } catch (GeneralException& ex) {
     this->showExceptionDialog(ex.what());

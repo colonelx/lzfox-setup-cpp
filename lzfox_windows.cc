@@ -64,9 +64,10 @@ void SerialConn::open_conn() {
   if(this->port.empty()) {
     throw GeneralException("No port was selected!");
   }
-  if(this->serial_port > 0) {
+  if(this->serial_port != INVALID_HANDLE_VALUE) {
     this->close_conn();
   }
+  printf(this->port.c_str());
   this->serial_port = CreateFile(("\\\\.\\" + this->port).c_str(),
     GENERIC_READ | GENERIC_WRITE, //Read/Write
     0,               // No Sharing
@@ -83,15 +84,61 @@ void SerialConn::open_conn() {
   dcbSerialParams.Parity   = NOPARITY;  // Setting Parity = None
 
   SetCommState(this->serial_port, &dcbSerialParams);
+
+  COMMTIMEOUTS timeouts = { 0 };
+  timeouts.ReadIntervalTimeout         = 50; // in milliseconds
+  timeouts.ReadTotalTimeoutConstant    = 50; // in milliseconds
+  timeouts.ReadTotalTimeoutMultiplier  = 10; // in milliseconds
+  timeouts.WriteTotalTimeoutConstant   = 50; // in milliseconds
+  timeouts.WriteTotalTimeoutMultiplier = 10; // in milliseconds
+  SetCommTimeouts(this->serial_port, &timeouts);
 }
+
+
 bool SerialConn::check_conn() {
-  if (this->serial_port == INVALID_HANDLE_VALUE)
-      printf("Error in opening serial port");
-  else
-      printf("vopening serial port successful");
+  char cmd[] = {'P','I','N','G','\n'};
+  DWORD dNoOFBytestoWrite;         // No of bytes to write into the port
+  DWORD dNoOfBytesWritten = 0;
+  dNoOFBytestoWrite = sizeof(cmd);
+  bool valid_response = false;
+  int i = 0;
+  
+  while (!valid_response && i < 10) {
+    WriteFile(this->serial_port,        // Handle to the Serial port
+              cmd,     // Data to be written to the port
+              dNoOFBytestoWrite,  //No of bytes to write
+              &dNoOfBytesWritten, //Bytes written
+              NULL);
+    
+    char TempChar; //Temporary character used for reading
+    char SerialBuffer[256];//Buffer for storing Rxed Data
+    DWORD NoBytesRead;
+    i++;
+    int n = 0;
+    do
+    {
+      ReadFile( this->serial_port,           //Handle of the Serial port
+                &TempChar,       //Temporary character
+                sizeof(TempChar),//Size of TempChar
+                &NoBytesRead,    //Number of bytes read
+                NULL);
+
+      SerialBuffer[n] = TempChar;// Store Tempchar into buffer
+      n++;
+    }
+    while (NoBytesRead > 0);
+    string response(SerialBuffer);
+    cout << response << endl;
+    if (response.compare("\r\nPONG\r\n>>") == 0){
+      valid_response = true;
+      cout << "Connection is valid!" << endl;
+    }
+  }
+  return valid_response;
 }
 void SerialConn::close_conn() {
   CloseHandle(this->serial_port);
+  cout << "Connection is closed!" << endl;
 }
 
 #endif

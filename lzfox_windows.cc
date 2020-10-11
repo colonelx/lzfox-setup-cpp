@@ -128,8 +128,9 @@ bool SerialConn::check_conn() {
     }
     while (NoBytesRead > 0);
     string response(SerialBuffer);
+    response = response.substr(0,9);
     cout << response << endl;
-    if (response.compare("\r\nPONG\r\n>>") == 0){
+    if (response.compare("\r\nPONG\r\n>") == 0){
       valid_response = true;
       cout << "Connection is valid!" << endl;
     }
@@ -138,6 +139,9 @@ bool SerialConn::check_conn() {
 }
 void SerialConn::close_conn() {
   CloseHandle(this->serial_port);
+  if(this->serial_port == INVALID_HANDLE_VALUE) {
+    cout << "Closed!" << endl;
+  }
   cout << "Connection is closed!" << endl;
 }
 
